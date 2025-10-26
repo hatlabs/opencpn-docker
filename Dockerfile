@@ -29,7 +29,7 @@ RUN \
     /tmp/*
 
 # Add local files
-# COPY /root /
+COPY /root /
 
 # Ports and volumes
 EXPOSE 3000 3001 8082

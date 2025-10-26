@@ -1,4 +1,4 @@
-FROM ghcr.io/linuxserver/baseimage-selkies:arm64v8-ubuntunoble
+FROM ghcr.io/linuxserver/baseimage-selkies:ubuntunoble
 
 # Set version label
 ARG BUILD_DATE

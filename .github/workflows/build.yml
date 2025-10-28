@@ -40,6 +40,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare Docker-compatible version
+        id: docker-version
+        run: |
+          # Extract version from tag and make it Docker-compatible
+          # Git tag: v5.12.4+dfsg-1.bpo24.04.ppa1
+          # Docker tag: 5.12.4-dfsg-1.bpo24.04.ppa1 (replace + with -)
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # Remove v prefix
+            DOCKER_VERSION="${VERSION//+/-}"  # Replace + with -
+            echo "version=$DOCKER_VERSION" >> $GITHUB_OUTPUT
+            echo "Docker-compatible version: $DOCKER_VERSION"
+          else
+            echo "version=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -51,6 +67,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.docker-version.outputs.version }},enable=${{ steps.docker-version.outputs.version != '' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5

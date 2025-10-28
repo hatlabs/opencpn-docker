@@ -32,8 +32,8 @@ jobs:
               echo "modified=true" >> $GITHUB_OUTPUT
               echo "New branch with VERSION file"
             else
-              # Check the range of commits in this push
-              if git diff --name-only "$BEFORE_SHA..$AFTER_SHA" | grep -q "^VERSION$"; then
+              # Check file changes between the two commits
+              if git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" | grep -q "^VERSION$"; then
                 echo "modified=true" >> $GITHUB_OUTPUT
                 echo "VERSION file was modified in this push"
               else

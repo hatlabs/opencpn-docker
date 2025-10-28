@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch full history for robust VERSION file change detection
+          token: ${{ secrets.GH_PAT || github.token }}  # Use PAT to trigger workflows, fallback to GITHUB_TOKEN
 
       - name: Check if VERSION file was modified
         id: check-version

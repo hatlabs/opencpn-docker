@@ -42,12 +42,13 @@ jobs:
 
             # Find highest existing build number for this version
             LATEST_BUILD=$(git tag -l "${BASE_TAG}.build.*" | \
-              sed 's/.*\.build\.//' | \
-              sort -n | \
+              sed -n 's/.*\.build\.\([0-9]*\)$/\1/p' | \
+              sort -V | \
               tail -1)
 
-            if [ -z "$LATEST_BUILD" ]; then
-              # No build tags exist yet, start with build.1
+            # Validate that LATEST_BUILD is a non-empty integer
+            if [[ -z "$LATEST_BUILD" || ! "$LATEST_BUILD" =~ ^[0-9]+$ ]]; then
+              # No valid build tags exist yet, start with build.1
               BUILD_NUM=1
             else
               # Increment the build number

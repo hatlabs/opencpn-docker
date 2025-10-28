@@ -18,37 +18,8 @@ jobs:
           fetch-depth: 0  # Fetch full history for robust VERSION file change detection
           token: ${{ secrets.GH_PAT || github.token }}  # Use PAT to trigger workflows, fallback to GITHUB_TOKEN
 
-      - name: Check if VERSION file was modified
-        id: check-version
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-          AFTER_SHA: ${{ github.event.after }}
-        run: |
-          # Check if VERSION file exists and was modified in this push
-          if [ -f VERSION ]; then
-            # Check all commits in this push for VERSION file changes
-            # Handle edge case where before SHA might be all zeros (new branch)
-            if [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
-              # New branch, check if VERSION exists
-              echo "modified=true" >> $GITHUB_OUTPUT
-              echo "New branch with VERSION file"
-            else
-              # Check file changes between the two commits
-              if git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" | grep -q "^VERSION$"; then
-                echo "modified=true" >> $GITHUB_OUTPUT
-                echo "VERSION file was modified in this push"
-              else
-                echo "modified=false" >> $GITHUB_OUTPUT
-                echo "VERSION file was not modified in this push"
-              fi
-            fi
-          else
-            echo "modified=false" >> $GITHUB_OUTPUT
-            echo "VERSION file does not exist"
-          fi
-
-      - name: Read version and create tag
-        if: steps.check-version.outputs.modified == 'true'
+      - name: Determine tag to create
+        id: determine-tag
         run: |
           # Read version from VERSION file
           VERSION=$(cat VERSION | tr -d '[:space:]')
@@ -62,32 +33,86 @@ jobs:
           # Example: 5.12.4+dfsg-1~bpo24.04~ppa1 -> 5.12.4+dfsg-1.bpo24.04.ppa1
           TAG_VERSION=$(echo "$VERSION_NO_EPOCH" | sed 's/~/./g')
 
-          # Create tag name with 'v' prefix
-          TAG_NAME="v${TAG_VERSION}"
+          # Create base tag name with 'v' prefix
+          BASE_TAG="v${TAG_VERSION}"
 
-          echo "Creating git tag: $TAG_NAME"
+          # Check if base tag already exists
+          if git rev-parse "$BASE_TAG" >/dev/null 2>&1; then
+            echo "Base tag $BASE_TAG already exists, need to create build tag"
 
+            # Find highest existing build number for this version
+            LATEST_BUILD=$(git tag -l "${BASE_TAG}.build.*" | \
+              sed -n 's/.*\.build\.\([0-9]*\)$/\1/p' | \
+              sort -V | \
+              tail -1)
+
+            # Validate that LATEST_BUILD is a non-empty integer
+            if [[ -z "$LATEST_BUILD" || ! "$LATEST_BUILD" =~ ^[0-9]+$ ]]; then
+              # No valid build tags exist yet, start with build.1
+              BUILD_NUM=1
+            else
+              # Increment the build number
+              BUILD_NUM=$((LATEST_BUILD + 1))
+            fi
+
+            TAG_NAME="${BASE_TAG}.build.${BUILD_NUM}"
+            echo "Creating build tag: $TAG_NAME"
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "is_build_tag=true" >> $GITHUB_OUTPUT
+            echo "ppa_version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
+            echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
+          else
+            echo "Base tag $BASE_TAG does not exist, creating it"
+            TAG_NAME="$BASE_TAG"
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "is_build_tag=false" >> $GITHUB_OUTPUT
+            echo "ppa_version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and push tag
+        if: steps.determine-tag.outputs.tag_name != ''
+        env:
+          TAG_NAME: ${{ steps.determine-tag.outputs.tag_name }}
+          IS_BUILD_TAG: ${{ steps.determine-tag.outputs.is_build_tag }}
+          PPA_VERSION: ${{ steps.determine-tag.outputs.ppa_version }}
+          TAG_VERSION: ${{ steps.determine-tag.outputs.tag_version }}
+          BUILD_NUM: ${{ steps.determine-tag.outputs.build_num }}
+        run: |
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Check if tag already exists
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Tag $TAG_NAME already exists, skipping"
-            exit 0
-          fi
+          # Create appropriate tag message
+          if [ "$IS_BUILD_TAG" = "true" ]; then
+            TAG_MESSAGE="Release OpenCPN ${TAG_VERSION} (build ${BUILD_NUM})
 
-          # Create annotated tag
-          git tag -a "$TAG_NAME" -m "Release OpenCPN $TAG_VERSION
+          OpenCPN PPA version: ${PPA_VERSION}
+          Build number: ${BUILD_NUM}
 
-          OpenCPN PPA version: $VERSION
+          This is a Docker image rebuild with configuration or dependency updates.
+          The OpenCPN package version remains unchanged.
+
+          Docker images are automatically built and published to:
+          ghcr.io/hatlabs/opencpn-docker
+
+          🤖 This tag was automatically created by the release workflow."
+          else
+            TAG_MESSAGE="Release OpenCPN ${TAG_VERSION}
+
+          OpenCPN PPA version: ${PPA_VERSION}
 
           This release tracks the OpenCPN package from ppa:opencpn/opencpn.
 
           Docker images are automatically built and published to:
-          ghcr.io/hatlabs/opencpn-docker:$TAG_VERSION
+          ghcr.io/hatlabs/opencpn-docker
 
           🤖 This tag was automatically created by the release workflow."
+          fi
+
+          # Create annotated tag
+          git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
 
           # Push tag
           git push origin "$TAG_NAME"

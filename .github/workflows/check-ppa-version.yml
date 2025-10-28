@@ -93,7 +93,7 @@ jobs:
           # Create PR
           gh pr create \
             --title "chore: update opencpn to $LATEST_VERSION" \
-            --body "$(cat <<'EOF'
+            --body "$(cat <<EOF
           ## OpenCPN Version Update
 
           This PR updates the OpenCPN package version to track the latest release from the upstream PPA.

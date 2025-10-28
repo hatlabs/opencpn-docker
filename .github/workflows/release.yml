@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch full history for robust VERSION file change detection
+          token: ${{ secrets.GH_PAT || github.token }}  # Use PAT to trigger workflows, fallback to GITHUB_TOKEN
 
       - name: Check if VERSION file was modified
         id: check-version
@@ -53,12 +54,13 @@ jobs:
           VERSION=$(cat VERSION | tr -d '[:space:]')
           echo "Version from file: $VERSION"
 
-          # Convert debian version to valid git tag
+          # Convert debian version to valid semver-compatible git tag
           # Remove epoch (1:) if present
           VERSION_NO_EPOCH="${VERSION#*:}"
 
-          # Replace special characters (+, ~) with hyphens for git tag compatibility
-          TAG_VERSION=$(echo "$VERSION_NO_EPOCH" | sed 's/[+~]/-/g')
+          # Keep '+' for semver build metadata, replace only '~' with '.' for valid semver
+          # Example: 5.12.4+dfsg-1~bpo24.04~ppa1 -> 5.12.4+dfsg-1.bpo24.04.ppa1
+          TAG_VERSION=$(echo "$VERSION_NO_EPOCH" | sed 's/~/./g')
 
           # Create tag name with 'v' prefix
           TAG_NAME="v${TAG_VERSION}"

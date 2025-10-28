@@ -1,0 +1,128 @@
+name: Check OpenCPN PPA Version
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Query Launchpad API for latest version
+        id: ppa-version
+        run: |
+          echo "Querying Launchpad API for latest OpenCPN version..."
+          # Filter for Noble (24.04) arm64 packages - matches our Dockerfile base
+          LATEST_VERSION=$(curl -s "https://api.launchpad.net/1.0/~opencpn/+archive/ubuntu/opencpn?ws.op=getPublishedBinaries&binary_name=opencpn&status=Published" \
+            | jq -r '[.entries[] | select(.distro_arch_series_link | contains("noble") and endswith("/arm64"))] | first.binary_package_version')
+
+          if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+            echo "Error: Failed to fetch version from Launchpad API"
+            exit 1
+          fi
+
+          echo "Latest PPA version: $LATEST_VERSION"
+          echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Read current VERSION file
+        id: current-version
+        run: |
+          if [ -f VERSION ]; then
+            CURRENT_VERSION=$(cat VERSION | tr -d '[:space:]')
+            echo "Current tracked version: $CURRENT_VERSION"
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION file not found, will create it"
+            echo "version=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compare versions
+        id: compare
+        run: |
+          LATEST="${{ steps.ppa-version.outputs.version }}"
+          CURRENT="${{ steps.current-version.outputs.version }}"
+
+          if [ -z "$CURRENT" ]; then
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "VERSION file missing, needs creation"
+          elif [ "$LATEST" = "$CURRENT" ]; then
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "Versions match, no update needed"
+          else
+            # Use dpkg to compare versions properly (handles epochs, etc.)
+            if dpkg --compare-versions "$LATEST" gt "$CURRENT"; then
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "New version available: $LATEST > $CURRENT"
+            else
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+              echo "Current version is up to date or newer"
+            fi
+          fi
+
+      - name: Create Pull Request
+        if: steps.compare.outputs.needs_update == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST_VERSION="${{ steps.ppa-version.outputs.version }}"
+          BRANCH_NAME="update-opencpn-${LATEST_VERSION//[:+~]/-}"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create new branch
+          git checkout -b "$BRANCH_NAME"
+
+          # Update VERSION file
+          echo "$LATEST_VERSION" > VERSION
+          git add VERSION
+
+          # Commit changes
+          git commit -m "chore: update opencpn to $LATEST_VERSION"
+
+          # Push branch
+          git push origin "$BRANCH_NAME"
+
+          # Create PR
+          gh pr create \
+            --title "chore: update opencpn to $LATEST_VERSION" \
+            --body "$(cat <<EOF
+          ## OpenCPN Version Update
+
+          This PR updates the OpenCPN package version to track the latest release from the upstream PPA.
+
+          **New Version:** \`$LATEST_VERSION\`
+          **Previous Version:** \`${{ steps.current-version.outputs.version }}\`
+
+          ### Details
+
+          - **PPA:** [ppa:opencpn/opencpn](https://launchpad.net/~opencpn/+archive/ubuntu/opencpn)
+          - **Ubuntu Series:** Noble (24.04)
+
+          ### What happens after merge?
+
+          1. The release workflow will automatically create a git tag
+          2. The build workflow will build and publish new Docker images
+          3. Docker image tags will be created following semver patterns
+
+          ### Testing
+
+          Please verify:
+          - [ ] Version string is correctly formatted
+          - [ ] PPA changelog shows expected changes
+
+          ---
+          🤖 This PR was automatically created by the PPA version check workflow.
+          EOF
+          )" \
+            --base main \
+            --head "$BRANCH_NAME"

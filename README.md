@@ -23,7 +23,6 @@ docker run -d \
   --name opencpn \
   -p 3020:3000 \
   -v opencpn-config:/config \
-  --device=/dev/dri:/dev/dri \
   --shm-size=1gb \
   ghcr.io/hatlabs/opencpn-docker:latest
 ```
@@ -92,7 +91,13 @@ Configure NMEA connections in OpenCPN:
 
 ## Hardware Acceleration
 
-For optimal performance, enable GPU acceleration:
+The container uses software rendering by default, which should work on all systems.
+
+### GPU Acceleration Issues
+
+While hardware acceleration via `/dev/dri` is theoretically possible, **it currently causes display issues on some systems** (blank screen). This is a known limitation with the Selkies web desktop stack.
+
+**If you want to experiment with GPU acceleration:**
 
 ```bash
 docker run -d \
@@ -108,8 +113,9 @@ docker run -d \
 **Requirements:**
 - Intel or AMD GPU with DRI3 support
 - Proper GPU drivers installed on host
+- May result in blank screen (see known limitations below)
 
-Falls back to software rendering if GPU unavailable.
+**Note:** Software rendering performance is generally adequate for chart plotting. Only experiment with GPU acceleration if you experience performance issues.
 
 ## Advanced Usage
 
@@ -122,7 +128,6 @@ docker run -d \
   -v opencpn-config:/config \
   -e CUSTOM_USER=admin \
   -e PASSWORD=your-secure-password \
-  --device=/dev/dri:/dev/dri \
   --shm-size=1gb \
   ghcr.io/hatlabs/opencpn-docker:latest
 ```
@@ -136,7 +141,6 @@ docker run -d \
   -v opencpn-config:/config \
   -e CUSTOM_RES_W=2560 \
   -e CUSTOM_RES_H=1440 \
-  --device=/dev/dri:/dev/dri \
   --shm-size=1gb \
   ghcr.io/hatlabs/opencpn-docker:latest
 ```
@@ -170,9 +174,9 @@ docker buildx build --platform linux/amd64,linux/arm64 -t opencpn:local .
 
 ### Poor Performance
 
-- Enable GPU acceleration with `--device=/dev/dri`
-- Check GPU driver installation on host
+- Software rendering is used by default (GPU acceleration has compatibility issues)
 - Increase allocated resources (CPU/RAM)
+- Reduce resolution with `CUSTOM_RES_W` and `CUSTOM_RES_H` environment variables
 
 ### Charts Not Appearing
 

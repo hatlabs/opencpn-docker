@@ -124,7 +124,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name opencpn \
-  -p 3020:3000 \
+  -p 3021:3001 \
   -v opencpn-config:/config \
   -e CUSTOM_USER=admin \
   -e PASSWORD=your-secure-password \
@@ -137,7 +137,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name opencpn \
-  -p 3020:3000 \
+  -p 3021:3001 \
   -v opencpn-config:/config \
   -e CUSTOM_RES_W=2560 \
   -e CUSTOM_RES_H=1440 \

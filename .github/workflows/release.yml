@@ -95,7 +95,7 @@ jobs:
           The OpenCPN package version remains unchanged.
 
           Docker images are automatically built and published to:
-          ghcr.io/hatlabs/opencpn-docker
+          ghcr.io/halos-org/opencpn-docker
 
           🤖 This tag was automatically created by the release workflow."
           else
@@ -106,7 +106,7 @@ jobs:
           This release tracks the OpenCPN package from ppa:opencpn/opencpn.
 
           Docker images are automatically built and published to:
-          ghcr.io/hatlabs/opencpn-docker
+          ghcr.io/halos-org/opencpn-docker
 
           🤖 This tag was automatically created by the release workflow."
           fi

@@ -53,8 +53,8 @@ docker buildx build --platform linux/amd64,linux/arm64 -t opencpn:test .
 ### GitHub Actions
 
 The workflow automatically builds and publishes images on:
-- Push to `main` branch → `ghcr.io/hatlabs/opencpn-docker:main`, `:latest`
-- Tags matching `v*` → `ghcr.io/hatlabs/opencpn-docker:v1.0.0`, etc.
+- Push to `main` branch → `ghcr.io/halos-org/opencpn-docker:main`, `:latest`
+- Tags matching `v*` → `ghcr.io/halos-org/opencpn-docker:v1.0.0`, etc.
 
 **CRITICAL**: After first build, make package public:
 1. Go to https://github.com/orgs/hatlabs/packages/container/opencpn-docker/settings

@@ -24,7 +24,7 @@ docker run -d \
   -p 3020:3000 \
   -v opencpn-config:/config \
   --shm-size=1gb \
-  ghcr.io/hatlabs/opencpn-docker:latest
+  ghcr.io/halos-org/opencpn-docker:latest
 ```
 
 Access OpenCPN at `http://localhost:3020`
@@ -107,7 +107,7 @@ docker run -d \
   --device=/dev/dri:/dev/dri \
   --shm-size=1gb \
   -e DRI_NODE=/dev/dri/renderD128 \
-  ghcr.io/hatlabs/opencpn-docker:latest
+  ghcr.io/halos-org/opencpn-docker:latest
 ```
 
 **Requirements:**
@@ -129,7 +129,7 @@ docker run -d \
   -e CUSTOM_USER=admin \
   -e PASSWORD=your-secure-password \
   --shm-size=1gb \
-  ghcr.io/hatlabs/opencpn-docker:latest
+  ghcr.io/halos-org/opencpn-docker:latest
 ```
 
 ### Custom Resolution
@@ -142,7 +142,7 @@ docker run -d \
   -e CUSTOM_RES_W=2560 \
   -e CUSTOM_RES_H=1440 \
   --shm-size=1gb \
-  ghcr.io/hatlabs/opencpn-docker:latest
+  ghcr.io/halos-org/opencpn-docker:latest
 ```
 
 ## Building Locally
@@ -192,7 +192,7 @@ OpenCPN is licensed under GPL-2.0. Selkies and related components have their own
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or pull request on the [GitHub repository](https://github.com/hatlabs/opencpn-docker).
+Contributions are welcome! Please open an issue or pull request on the [GitHub repository](https://github.com/halos-org/opencpn-docker).
 
 ## Support
 

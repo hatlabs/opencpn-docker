@@ -1,6 +1,10 @@
+⚠️ **THESE RULES ONLY APPLY TO FILES IN /opencpn-docker/** ⚠️
+
 # OpenCPN Docker - Developer Guide
 
 Docker image for OpenCPN marine navigation software with Selkies web-based remote desktop.
+
+**Local Instructions**: For environment-specific instructions and configurations, see @CLAUDE.local.md (not committed to version control).
 
 ## Repository Purpose
 
@@ -15,7 +19,7 @@ opencpn-docker/
 │   └── build.yml          # Build and publish workflow
 ├── README.md              # User documentation
 ├── LICENSE                # GPL-2.0 License
-└── CLAUDE.md              # This file
+└── AGENTS.md              # This file
 ```
 
 ## Architecture
@@ -53,8 +57,8 @@ docker buildx build --platform linux/amd64,linux/arm64 -t opencpn:test .
 ### GitHub Actions
 
 The workflow automatically builds and publishes images on:
-- Push to `main` branch → `ghcr.io/halos-org/opencpn-docker:main`, `:latest`
-- Tags matching `v*` → `ghcr.io/halos-org/opencpn-docker:v1.0.0`, etc.
+- Push to `main` branch → `ghcr.io/hatlabs/opencpn-docker:main`, `:latest`
+- Tags matching `v*` → `ghcr.io/hatlabs/opencpn-docker:v1.0.0`, etc.
 
 **CRITICAL**: After first build, make package public:
 1. Go to https://github.com/orgs/hatlabs/packages/container/opencpn-docker/settings
@@ -167,7 +171,7 @@ See [baseimage-selkies docs](https://github.com/linuxserver/docker-baseimage-sel
 ## Contributing
 
 1. Test changes locally first
-2. Update documentation (README.md, CLAUDE.md)
+2. Update documentation (README.md, AGENTS.md)
 3. Follow conventional commit format
 4. Ensure GitHub Actions workflow passes
 5. Make package public after merge
